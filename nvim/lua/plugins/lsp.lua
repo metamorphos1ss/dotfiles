@@ -11,7 +11,7 @@ return {
     dependencies = { "neovim/nvim-lspconfig" },
     config = function()
       require("mason-lspconfig").setup {
-        ensure_installed = { "pyright", "lua_ls", "html", "cssls", "tsserver" },
+        ensure_installed = { "pyright", "lua_ls", "html", "cssls", "ts_ls" },
       }
       local lspconfig = require("lspconfig")
 
@@ -29,7 +29,7 @@ return {
         },
         html = {}, -- HTML
         cssls = {}, -- CSS
-        tsserver = {}, -- JavaScript/TypeScript (исправлено с "ts_ls" на "tsserver")
+        ts_ls = {}, -- JavaScript/TypeScript (исправлено с "ts_ls" на "tsserver")
       }
 
       for server, config in pairs(servers) do
