@@ -1,51 +1,100 @@
-#zinit init
-if [[ ! -f $HOME/.local/share/zinit/zinit.git/zinit.zsh ]]; then
-  echo "Installing zinit..."
-  mkdir -p "$HOME/.local/share/zinit"
-  git clone https://github.com/zdharma-continuum/zinit "$HOME/.local/share/zinit/zinit.git"
-fi
-
-source "$HOME/.local/share/zinit/zinit.git/zinit.zsh"
-autoload -Uz _zinit
-(( ${+_comps} )) && _comps[zinit]=_zinit
-
-#instant prompt
+# =========================
+# Powerlevel10k instant prompt (should be near the top)
+# =========================
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-#plugins
-zinit light zsh-users/zsh-autosuggestions
-zinit light zsh-users/zsh-completions
-zinit light rupa/z
-zinit light Aloxaf/fzf-tab
-zinit light djui/alias-tips
-zinit light MichaelAquilina/zsh-you-should-use
-zinit light romkatv/powerlevel10k
+# =========================
+# Zinit (safe auto-install only for interactive shells)
+# =========================
+if [[ -o interactive ]]; then
+  if [[ ! -f "$HOME/.local/share/zinit/zinit.git/zinit.zsh" ]]; then
+    command -v git >/dev/null && {
+      mkdir -p "$HOME/.local/share/zinit"
+      # keep it quiet and reasonably fast if network is slow
+      command -v timeout >/dev/null \
+        && timeout 8 git clone --depth=1 https://github.com/zdharma-continuum/zinit "$HOME/.local/share/zinit/zinit.git" >/dev/null 2>&1 \
+        || git clone --depth=1 https://github.com/zdharma-continuum/zinit "$HOME/.local/share/zinit/zinit.git" >/dev/null 2>&1
+    }
+  fi
+fi
 
-#MUST BE LAST
-zinit light zsh-users/zsh-syntax-highlighting 
+# If zinit exists, load it
+if [[ -f "$HOME/.local/share/zinit/zinit.git/zinit.zsh" ]]; then
+  source "$HOME/.local/share/zinit/zinit.git/zinit.zsh"
+  autoload -Uz _zinit
+  (( ${+_comps} )) && _comps[zinit]=_zinit
+fi
 
-#powerlevel10k theme
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+# =========================
+# Environment
+# =========================
+export EDITOR="nvim"
 
-#aliases
+# Deduplicate PATH entries and prepend yours
+typeset -U path PATH
+path=("$HOME/bin" "$HOME/.local/bin" /usr/local/bin $path)
+export PATH
+
+# =========================
+# Plugins (zinit)
+# =========================
+if (( ${+functions[zinit]} )); then
+  # Completions should be installed before compinit
+  zinit ice blockf
+  zinit light zsh-users/zsh-completions
+
+  # Load theme early
+  zinit light romkatv/powerlevel10k
+
+  # Useful plugins, some lazy to speed up startup
+  zinit light rupa/z
+  zinit light Aloxaf/fzf-tab
+
+  zinit ice wait"1"
+  zinit light zsh-users/zsh-autosuggestions
+
+  zinit ice wait"1"
+  zinit light djui/alias-tips
+
+  zinit ice wait"1"
+  zinit light MichaelAquilina/zsh-you-should-use
+
+  # MUST be last
+  zinit light zsh-users/zsh-syntax-highlighting
+fi
+
+# =========================
+# Powerlevel10k config
+# =========================
+[[ -f "$HOME/.p10k.zsh" ]] && source "$HOME/.p10k.zsh"
+
+# =========================
+# Completion init (with cache)
+# =========================
+autoload -Uz compinit
+compinit -d "${XDG_CACHE_HOME:-$HOME/.cache}/zcompdump"
+
+# =========================
+# Aliases (safe: only if tools exist)
+# =========================
 alias ll='ls -lha'
 alias gs='git status'
 alias n='nvim'
-alias cat='bat'
-alias b='bat'
 alias p='python3'
 
-#env
-export EDITOR="nvim"
-export PATH="$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
+command -v bat >/dev/null && {
+  alias cat='bat'
+  alias b='bat'
+}
 
-#completition
-autoload -Uz compinit && compinit
-
-#zsh settings
+# =========================
+# Zsh settings
+# =========================
 setopt autocd
 setopt no_beep
 setopt hist_ignore_dups
-echo -ne '\e[5 q'
+
+# Cursor shape (only in interactive terminals)
+[[ -o interactive && -t 1 ]] && echo -ne '\e[5 q'
